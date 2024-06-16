@@ -1,0 +1,60 @@
+name: APIOps Extractor Pipeline
+'on':
+  workflow_dispatch: null
+jobs:
+  extract:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v2
+      - name: Set up Azure CLI
+        uses: azure/login@v1
+        with:
+          creds: '${{ secrets.AZURE_CREDENTIALS }}'
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install jq
+          npm install -g @azure/arm-apimanagement
+          npm install -g @apiops/management
+      - name: Extract full APIM configuration
+        env:
+          AZURE_SUBSCRIPTION_ID: '${{ secrets.SUBSCRIPTION_ID }}'
+          RESOURCE_GROUP: '${{ secrets.RESOURCE_GROUP }}'
+          APIM_NAME: '${{ secrets.APIM_NAME }}'
+        run: >
+          APIOPS_EXTRACTOR_DIR=apiops-extractor
+
+          mkdir -p $APIOPS_EXTRACTOR_DIR
+
+          npx @apiops/management extract --output-location $APIOPS_EXTRACTOR_DIR
+          \
+                                         --resource-group $RESOURCE_GROUP \
+                                         --service-name $APIM_NAME \
+                                         --extractor-parameters "{ \
+                                             \"apis\": true, \
+                                             \"groups\": true, \
+                                             \"products\": true, \
+                                             \"namedValues\": true, \
+                                             \"policies\": true, \
+                                             \"backends\": true, \
+                                             \"loggers\": true, \
+                                             \"authorizationServers\": true, \
+                                             \"tags\": true, \
+                                             \"subscriptions\": true, \
+                                             \"openIdConnectProviders\": true, \
+                                             \"diagnostics\": true, \
+                                             \"identityProviders\": true \
+                                         }"
+      - name: Commit and push extracted configurations
+        run: >
+          git config --global user.name "github-actions[bot]"
+
+          git config --global user.email
+          "github-actions[bot]@users.noreply.github.com"
+
+          git add apiops-extractor/*
+
+          git commit -m "Extracted full APIM configuration"
+
+          git push
