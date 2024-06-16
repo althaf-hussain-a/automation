@@ -36,6 +36,8 @@ jobs:
           az apim api list --resource-group $RESOURCE_GROUP --service-name
           $APIM_NAME > $APIOPS_EXTRACTOR_DIR/apis.json
       - name: Commit and push extracted configurations
+        env:
+          GH_PAT: '${{ secrets.GH_PAT }}'
         run: >
           git config --global user.name "github-actions[bot]"
 
@@ -46,4 +48,8 @@ jobs:
 
           git commit -m "Extracted full APIM configuration"
 
-          git push
+          git remote set-url origin
+          https://x-access-token:${GH_PAT}@github.com/${{ github.repository
+          }}.git
+
+          git push origin main
