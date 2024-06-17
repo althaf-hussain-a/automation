@@ -1,91 +1,60 @@
 name: APIOps Extractor Pipeline
-'on':
-  workflow_dispatch: null
+
+on:
+  workflow_dispatch:
+
 jobs:
   extract:
     runs-on: ubuntu-latest
+
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v2
-      - name: Set up Azure CLI
-        uses: azure/login@v1
-        with:
-          creds: '${{ secrets.AZURE_CREDENTIALS }}'
-      - name: Install dependencies
-        run: |
-          sudo apt-get update
-          sudo apt-get install jq
-          npm install -g @azure/arm-apimanagement
-      - name: Extract full APIM configuration
-        env:
-          AZURE_SUBSCRIPTION_ID: '${{ secrets.SUBSCRIPTION_ID }}'
-          RESOURCE_GROUP: '${{ secrets.RESOURCE_GROUP }}'
-          APIM_NAME: '${{ secrets.APIM_NAME }}'
-        run: >
-          APIOPS_EXTRACTOR_DIR=apiops-extractor
+    - name: Checkout repository
+      uses: actions/checkout@v2
 
-          mkdir -p $APIOPS_EXTRACTOR_DIR
+    - name: Set up Azure CLI
+      uses: azure/login@v1
+      with:
+        creds: ${{ secrets.AZURE_CREDENTIALS }}
 
-          echo "Extracting APIM configuration..."
+    - name: Install dependencies
+      run: |
+        sudo apt-get update
+        sudo apt-get install jq
+        npm install -g @azure/arm-apimanagement
 
+    - name: Extract full APIM configuration
+      env:
+        AZURE_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
+        RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
+        APIM_NAME: ${{ secrets.APIM_NAME }}
+      run: |
+        APIOPS_EXTRACTOR_DIR=apiops-extractor
+        mkdir -p $APIOPS_EXTRACTOR_DIR
+        echo "Extracting APIM configuration..."
 
-          az apim api list --resource-group $RESOURCE_GROUP --service-name
-          $APIM_NAME > $APIOPS_EXTRACTOR_DIR/apis.json
+        az apim api list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/apis.json
+        for api in $(jq -r '.[].name' $APIOPS_EXTRACTOR_DIR/apis.json); do
+            az apim api policy get --resource-group $RESOURCE_GROUP --service-name $APIM_NAME --api-id $api > $APIOPS_EXTRACTOR_DIR/policy-$api.json
+        done
+        az apim product list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/products.json
+        az apim named-value list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/namedValues.json
+        az apim group list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/groups.json
+        az apim backend list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/backends.json
+        az apim logger list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/loggers.json
+        az apim auth-server list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/authorizationServers.json
+        az apim tag list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/tags.json
+        az apim subscription list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/subscriptions.json
+        az apim openid-connect-provider list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/openIdConnectProviders.json
+        az apim diagnostic list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/diagnostics.json
+        az apim identity-provider list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/identityProviders.json
 
-          az apim api policy list --resource-group $RESOURCE_GROUP
-          --service-name $APIM_NAME --api-id {api-id} >
-          $APIOPS_EXTRACTOR_DIR/policies.json
-
-          az apim product list --resource-group $RESOURCE_GROUP --service-name
-          $APIM_NAME > $APIOPS_EXTRACTOR_DIR/products.json
-
-          az apim nv list --resource-group $RESOURCE_GROUP --service-name
-          $APIM_NAME > $APIOPS_EXTRACTOR_DIR/namedValues.json
-
-          az apim group list --resource-group $RESOURCE_GROUP --service-name
-          $APIM_NAME > $APIOPS_EXTRACTOR_DIR/groups.json
-
-          az apim backend list --resource-group $RESOURCE_GROUP --service-name
-          $APIM_NAME > $APIOPS_EXTRACTOR_DIR/backends.json
-
-          az apim logger list --resource-group $RESOURCE_GROUP --service-name
-          $APIM_NAME > $APIOPS_EXTRACTOR_DIR/loggers.json
-
-          az apim auth-server list --resource-group $RESOURCE_GROUP
-          --service-name $APIM_NAME >
-          $APIOPS_EXTRACTOR_DIR/authorizationServers.json
-
-          az apim tag list --resource-group $RESOURCE_GROUP --service-name
-          $APIM_NAME > $APIOPS_EXTRACTOR_DIR/tags.json
-
-          az apim subscription list --resource-group $RESOURCE_GROUP
-          --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/subscriptions.json
-
-          az apim oidc-provider list --resource-group $RESOURCE_GROUP
-          --service-name $APIM_NAME >
-          $APIOPS_EXTRACTOR_DIR/openIdConnectProviders.json
-
-          az apim diagnostic list --resource-group $RESOURCE_GROUP
-          --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/diagnostics.json
-
-          az apim identity-provider list --resource-group $RESOURCE_GROUP
-          --service-name $APIM_NAME >
-          $APIOPS_EXTRACTOR_DIR/identityProviders.json
-      - name: Commit and push extracted configurations
-        env:
-          GH_PAT: '${{ secrets.GH_PAT }}'
-        run: >
-          git config --global user.name "github-actions[bot]"
-
-          git config --global user.email
-          "github-actions[bot]@users.noreply.github.com"
-
-          git add apiops-extractor/*
-
-          git commit -m "Extracted full APIM configuration"
-
-          git remote set-url origin
-          https://x-access-token:${GH_PAT}@github.com/${{ github.repository
-          }}.git
-
-          git push origin main
+    - name: Commit and push extracted configurations
+      env:
+        GH_PAT: ${{ secrets.GH_PAT }}
+      run: |
+        git config --global user.name "github-actions[bot]"
+        git config --global user.email "github-actions[bot]@users.noreply.github.com"
+        git add apiops-extractor/*
+        git commit -m "Extracted full APIM configuration"
+        git remote set-url origin https://x-access-token:${GH_PAT}@github.com/${{ github.repository }}.git
+        git push origin main
