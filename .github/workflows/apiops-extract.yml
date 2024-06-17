@@ -22,7 +22,7 @@ jobs:
         sudo apt-get install jq
         npm install -g @azure/arm-apimanagement
 
-    - name: Extract full APIM configuration using ARM template
+    - name: Extract full APIM configuration
       env:
         AZURE_SUBSCRIPTION_ID: ${{ secrets.SUBSCRIPTION_ID }}
         RESOURCE_GROUP: ${{ secrets.RESOURCE_GROUP }}
@@ -30,10 +30,23 @@ jobs:
       run: |
         APIOPS_EXTRACTOR_DIR=apiops-extractor
         mkdir -p $APIOPS_EXTRACTOR_DIR
-        echo "Extracting APIM configuration using ARM template..."
+        echo "Extracting APIM configuration..."
 
-        # Export the APIM instance as an ARM template
-        az apim export --name $APIM_NAME --resource-group $RESOURCE_GROUP --output-folder $APIOPS_EXTRACTOR_DIR --output-format arm-template
+        az apim api list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/apis.json
+        for api in $(jq -r '.[].name' $APIOPS_EXTRACTOR_DIR/apis.json); do
+            az apim api policy get --resource-group $RESOURCE_GROUP --service-name $APIM_NAME --api-id $api > $APIOPS_EXTRACTOR_DIR/policy-$api.json
+        done
+        az apim product list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/products.json
+        az apim named-value list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/namedValues.json
+        az apim group list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/groups.json
+        az apim backend list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/backends.json
+        az apim logger list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/loggers.json
+        az apim auth-server list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/authorizationServers.json
+        az apim tag list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/tags.json
+        az apim subscription list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/subscriptions.json
+        az apim openid-connect-provider list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/openIdConnectProviders.json
+        az apim diagnostic list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/diagnostics.json
+        az apim identity-provider list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/identityProviders.json
 
     - name: Commit and push extracted configurations
       env:
