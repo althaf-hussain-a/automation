@@ -33,9 +33,6 @@ jobs:
         echo "Extracting APIM configuration..."
 
         az apim api list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/apis.json
-        for api in $(jq -r '.[].name' $APIOPS_EXTRACTOR_DIR/apis.json); do
-            az apim api policy get --resource-group $RESOURCE_GROUP --service-name $APIM_NAME --api-id $api > $APIOPS_EXTRACTOR_DIR/policy-$api.json
-        done
         az apim product list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/products.json
         az apim named-value list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/namedValues.json
         az apim group list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/groups.json
