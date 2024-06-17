@@ -34,17 +34,7 @@ jobs:
 
         az apim api list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/apis.json
         az apim product list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/products.json
-        az apim named-value list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/namedValues.json
-        az apim group list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/groups.json
-        az apim backend list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/backends.json
-        az apim logger list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/loggers.json
-        az apim auth-server list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/authorizationServers.json
-        az apim tag list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/tags.json
-        az apim subscription list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/subscriptions.json
-        az apim openid-connect-provider list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/openIdConnectProviders.json
-        az apim diagnostic list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/diagnostics.json
-        az apim identity-provider list --resource-group $RESOURCE_GROUP --service-name $APIM_NAME > $APIOPS_EXTRACTOR_DIR/identityProviders.json
-
+        
     - name: Commit and push extracted configurations
       env:
         GH_PAT: ${{ secrets.GH_PAT }}
